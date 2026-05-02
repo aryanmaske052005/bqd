@@ -407,6 +407,41 @@ export default function KYCVerification() {
                           </p>
                         </div>
                       )}
+                      {verificationResult.record.expiryDate && (() => {
+                        const expiry = new Date(verificationResult.record.expiryDate);
+                        const now = new Date();
+                        const diffTime = expiry.getTime() - now.getTime();
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        const isExpiringSoon = diffDays > 0 && diffDays <= 10;
+                        const isExpired = diffDays <= 0;
+
+                        return (
+                          <div className="col-span-1 md:col-span-2 space-y-3 mt-2">
+                            <div>
+                              <p className="text-sm text-slate-500">Expiry Date</p>
+                              <p className="text-sm font-medium text-slate-800">
+                                {expiry.toLocaleDateString()}
+                              </p>
+                            </div>
+                            {isExpiringSoon && (
+                              <Alert className="border-orange-500 bg-orange-50 text-orange-900 mt-2">
+                                <AlertTriangle className="h-4 w-4 text-orange-600" />
+                                <AlertDescription className="font-medium ml-2 text-xs">
+                                  Warning: Expiring in {diffDays} days!
+                                </AlertDescription>
+                              </Alert>
+                            )}
+                            {isExpired && (
+                              <Alert className="border-red-500 bg-red-50 text-red-900 mt-2">
+                                <XCircle className="h-4 w-4 text-red-600" />
+                                <AlertDescription className="font-medium ml-2 text-xs">
+                                  Critical: Document has expired.
+                                </AlertDescription>
+                              </Alert>
+                            )}
+                          </div>
+                        );
+                      })()}
                       {verificationResult.record.blockchainTxHash && (
                         <div>
                           <p className="text-sm text-slate-500">
