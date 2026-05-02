@@ -245,7 +245,7 @@ class MySQLService {
     return rows.map((row: any) => this.parseRecord(row));
   }
 
-  async updateKYCRecord(id: string, updates: { status?: string; remarks?: string; verifiedBy?: string; verifiedAt?: string | null; updatedAt: string; expiryDate?: string }): Promise<void> {
+  async updateKYCRecord(id: string, updates: { status?: string; remarks?: string; verifiedBy?: string; verifiedAt?: string | null; updatedAt: string; expiryDate?: string; blockchainTxHash?: string }): Promise<void> {
     if (!this.pool) throw new Error("Database not initialized");
 
     // Convert ISO dates to MySQL datetime format
@@ -261,6 +261,7 @@ class MySQLService {
     if (updates.verifiedBy !== undefined) { fields.push("verified_by = ?"); values.push(updates.verifiedBy); }
     if (updates.verifiedAt !== undefined) { fields.push("verified_at = ?"); values.push(updates.verifiedAt ? toMySQLDateTime(updates.verifiedAt) : null); }
     if (updates.expiryDate !== undefined) { fields.push("expiry_date = ?"); values.push(updates.expiryDate ? toMySQLDateTime(updates.expiryDate) : null); }
+    if (updates.blockchainTxHash !== undefined) { fields.push("blockchain_tx_hash = ?"); values.push(updates.blockchainTxHash); }
     fields.push("updated_at = ?");
     values.push(toMySQLDateTime(updates.updatedAt));
     values.push(id);

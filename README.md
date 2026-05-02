@@ -1,440 +1,96 @@
-# eKYC Blockchain System
-
-A complete **electronic Know Your Customer (eKYC) system** built on **Hyperledger Fabric** blockchain technology. This production-ready solution provides immutable identity verification with document storage on IPFS and a modern React frontend.
-
-![eKYC System Architecture](https://img.shields.io/badge/Blockchain-Hyperledger%20Fabric-blue) ![Frontend](https://img.shields.io/badge/Frontend-React%2018-61dafb) ![Backend](https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-green) ![Storage](https://img.shields.io/badge/Storage-IPFS-orange)
-
-## 🏗️ System Architecture
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   React Frontend │    │   Express API    │    │ Hyperledger     │
-│   (Port 3000)    │────│   (Port 8080)    │────│ Fabric Network  │
-└��────────────────┘    └──────────────────┘    └─────────────────┘
-         │                        │                        │
-         │              ┌──────────────────┐               │
-         └──────────────│      IPFS        │───────────────┘
-                        │   (Port 5001)    │
-                        └──────────────────┘
-                                 │
-                        ┌──────────────────┐
-                        │     CouchDB      │
-                        │   (Port 5984)    │
-                        └──────────────────┘
-```
-
-## ✨ Features
-
-### 🔐 Blockchain Security
-
-- **Immutable Records**: All KYC data hashes stored on Hyperledger Fabric
-- **Consensus Mechanism**: Multi-peer validation with orderer consensus
-- **Audit Trail**: Complete history of all KYC actions recorded on-chain
-- **Smart Contracts**: Automated verification and validation logic
-
-### 📄 Document Management
-
-- **IPFS Storage**: Encrypted documents stored off-chain on IPFS
-- **Hash Verification**: Document integrity verified via blockchain hashes
-- **Multi-format Support**: PDF, JPG, PNG document uploads
-- **Secure Access**: Role-based document access control
-
-### 🌐 User Experience
-
-- **Modern Interface**: React 18 with TailwindCSS and Shadcn/UI
-- **Real-time Updates**: Live status tracking and notifications
-- **Responsive Design**: Mobile-first responsive design
-- **Multi-step Forms**: Guided KYC submission process
-
-### 🔍 Verification System
-
-- **Instant Verification**: Real-time KYC status checking
-- **Multi-level KYC**: L1, L2, L3 verification levels
-- **Blockchain Proof**: Cryptographic verification of authenticity
-- **Export Features**: Generate verification certificates
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- **Docker** (v20.10+) and **Docker Compose** (v2.0+)
-- **Node.js** (v18+) and **pnpm**
-- **Go** (v1.21+) for chaincode compilation
-- **Git** for version control
-
-### 1. Clone and Setup
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd ekyc-blockchain-system
-
-# Install dependencies
-pnpm install
-
-# Make scripts executable
-chmod +x scripts/*.sh
-```
-
-### 2. Deploy the Network
-
-```bash
-# Deploy complete Hyperledger Fabric network
-./scripts/deploy-network.sh
-```
-
-This script will:
-
-- ✅ Generate crypto material for organizations
-- ✅ Start Hyperledger Fabric network (orderer, peers, CouchDB)
-- ✅ Create and configure the eKYC channel
-- ✅ Deploy and instantiate the eKYC chaincode
-- ✅ Start IPFS node for document storage
-- ✅ Launch the React/Express application
-- ✅ Configure Nginx reverse proxy
-
-### 3. Access the System
-
-Once deployment completes, access:
-
-- **🌐 Frontend**: http://localhost (Main eKYC interface)
-- **🔗 API**: http://localhost:8080/api (REST API endpoints)
-- **📊 CouchDB**: http://localhost:5984/\_utils (Database admin)
-- **📁 IPFS**: http://localhost:8080 (IPFS web interface)
-
-## 📋 Project Structure
-
-```
-ekyc-blockchain-system/
-├── client/                     # React Frontend
-│   ├── pages/                  # Route components
-│   │   ├── Index.tsx          # Homepage
-│   │   ├── KYCSubmission.tsx  # KYC submission form
-│   │   ├── KYCVerification.tsx# Status verification
-│   │   ├── KYCHistory.tsx     # Audit trail viewer
-│   │   └── Auth.tsx           # Authentication
-│   ├── components/ui/         # Reusable UI components
-│   └── App.tsx                # Main app with routing
-├── server/                    # Express Backend
-│   ├── routes/
-│   │   ├─��� kyc.ts            # KYC API endpoints
-│   │   └── demo.ts           # Demo endpoints
-│   └── index.ts              # Server configuration
-├── shared/                    # Shared TypeScript types
-│   └── api.ts                # API interfaces
-├── chaincode/                 # Hyperledger Fabric Smart Contracts
-│   ├── ekyc-chaincode.go     # Main chaincode logic
-│   └── go.mod                # Go dependencies
-├── scripts/                   # Deployment scripts
-│   ├── deploy-network.sh     # Full deployment
-│   ├── stop-network.sh       # Stop network
-│   └── cleanup-network.sh    # Clean up all resources
-├── docker-compose.yaml        # Docker orchestration
-├── Dockerfile                 # Application container
-└── nginx.conf                 # Reverse proxy config
-```
-
-## 🔧 API Endpoints
-
-### KYC Operations
-
-- `POST /api/kyc/submit` - Submit new KYC application
-- `GET /api/kyc/verify?id={kycId}` - Verify KYC status
-- `GET /api/kyc/verify?pan={panNumber}` - Verify by PAN
-- `GET /api/kyc/verify?email={email}` - Verify by email
-- `GET /api/kyc/history?kycId={id}` - Get audit trail
-- `GET /api/kyc/stats` - Get system statistics
-
-### System Health
-
-- `GET /api/ping` - Health check endpoint
-
-## ��️ Hyperledger Fabric Network
-
-### Network Components
-
-#### Organizations
-
-- **Orderer Org**: `ekyc.com` - Consensus management
-- **Org1**: `org1.ekyc.com` - KYC verification entity
-- **Org2**: `org2.ekyc.com` - Regulatory compliance entity
-
-#### Peers
-
-- **peer0.org1.ekyc.com:7051** - Primary peer for Org1
-- **peer0.org2.ekyc.com:9051** - Primary peer for Org2
-
-#### Services
-
-- **Orderer**: `orderer.ekyc.com:7050` - Transaction ordering
-- **CouchDB**: State database for rich queries
-- **CLI**: Command-line interface for network operations
-
-### Chaincode Functions
-
-```go
-// Core KYC operations
-CreateKYC(kycData string) error
-ReadKYC(id string) (*KYCRecord, error)
-UpdateKYCStatus(id, status, verifiedBy, remarks string) error
-
-// Query operations
-GetKYCByPAN(pan string) ([]*KYCRecord, error)
-GetKYCByEmail(email string) ([]*KYCRecord, error)
-GetKYCHistory(kycID string) ([]*HistoryEntry, error)
-
-// Verification
-VerifyDocumentHash(kycID, documentHash string) (bool, error)
-```
-
-## 🔒 Security Features
-
-### Data Protection
-
-- **On-chain**: Only document hashes and metadata
-- **Off-chain**: Encrypted documents on IPFS
-- **Access Control**: Role-based permissions
-- **Audit Trail**: Immutable transaction history
-
-### Network Security
-
-- **TLS Encryption**: All peer-to-peer communication
-- **Certificate Authority**: PKI-based identity management
-- **Multi-signature**: Consensus-based approvals
-- **Rate Limiting**: API request protection
-
-## 🛠️ Development
-
-### Local Development
-
-```bash
-# Start development server
-pnpm dev
-
-# Build for production
-pnpm build
-
-# Run tests
-pnpm test
-
-# Type checking
-pnpm typecheck
-```
-
-### Environment Variables
-
-```bash
-# .env file
-NODE_ENV=development
-FABRIC_NETWORK_PATH=./fabric-config
-IPFS_API_URL=http://localhost:5001
-COUCHDB_URL=http://admin:adminpw@localhost:5984
-```
-
-### Adding New Chaincode Functions
-
-1. Update `chaincode/ekyc-chaincode.go`
-2. Increment chaincode version in `scripts/deploy-network.sh`
-3. Redeploy: `./scripts/deploy-network.sh`
-
-## 🚢 Deployment
-
-### Local Deployment
-
-```bash
-./scripts/deploy-network.sh
-```
-
-### Production Deployment
-
-#### Using Docker Swarm
-
-```bash
-# Initialize swarm
-docker swarm init
-
-# Deploy stack
-docker stack deploy -c docker-compose.prod.yaml ekyc
-```
-
-#### Using Kubernetes
-
-```bash
-# Generate K8s manifests
-kompose convert -f docker-compose.yaml
-
-# Deploy to cluster
-kubectl apply -f ./k8s/
-```
-
-### Cloud Deployment
-
-The system supports deployment on:
-
-- **AWS** (using ECS/EKS)
-- **Azure** (using Container Instances/AKS)
-- **GCP** (using Cloud Run/GKE)
-- **DigitalOcean** (using App Platform)
-
-For cloud deployment guides, see `/docs/deployment/`
-
-## 📊 Monitoring
-
-### Health Checks
-
-- Application: `GET /api/ping`
-- Fabric Network: `docker exec cli peer channel list`
-- IPFS: `curl http://localhost:5001/api/v0/version`
-
-### Logs
-
-```bash
-# Application logs
-docker logs ekyc_application
-
-# Fabric peer logs
-docker logs peer0.org1.ekyc.com
-
-# Orderer logs
-docker logs orderer.ekyc.com
-```
-
-### Metrics
-
-- Prometheus metrics exposed on `/metrics`
-- Grafana dashboards for visualization
-- Custom KYC business metrics
-
-## 🧪 Testing
-
-### Unit Tests
-
-```bash
-pnpm test
-```
-
-### Integration Tests
-
-```bash
-# Test chaincode
-cd chaincode && go test ./...
-
-# Test API endpoints
-pnpm test:api
-```
-
-### Load Testing
-
-```bash
-# Install k6
-brew install k6
-
-# Run load tests
-k6 run tests/load/api-load-test.js
-```
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-#### Network Won't Start
-
-```bash
-# Check Docker
-docker info
-
-# Clean up and retry
-./scripts/cleanup-network.sh
-./scripts/deploy-network.sh
-```
-
-#### Chaincode Installation Fails
-
-```bash
-# Check Go installation
-go version
-
-# Verify chaincode syntax
-cd chaincode && go build
-```
-
-#### IPFS Connection Issues
-
-```bash
-# Check IPFS daemon
-docker logs ipfs_node
-
-# Reset IPFS data
-rm -rf ipfs_data && ./scripts/deploy-network.sh
-```
-
-### Debug Mode
-
-```bash
-# Enable debug logging
-export FABRIC_LOGGING_SPEC=DEBUG
-./scripts/deploy-network.sh
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/new-feature`
-3. Commit changes: `git commit -am 'Add new feature'`
-4. Push to branch: `git push origin feature/new-feature`
-5. Submit a Pull Request
-
-### Development Guidelines
-
-- Follow TypeScript best practices
-- Write comprehensive tests
-- Update documentation for new features
-- Follow conventional commit messages
-
-## 📜 License
-
-This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-- **Documentation**: [Wiki](../../wiki)
-- **Issues**: [GitHub Issues](../../issues)
-- **Discussions**: [GitHub Discussions](../../discussions)
-- **Email**: support@ekyc-system.com
-
-## 🏆 Acknowledgments
-
-- [Hyperledger Fabric](https://hyperledger-fabric.readthedocs.io/) - Blockchain framework
-- [IPFS](https://ipfs.io/) - Distributed storage
-- [React](https://reactjs.org/) - Frontend framework
-- [TailwindCSS](https://tailwindcss.com/) - CSS framework
-- [Shadcn/UI](https://ui.shadcn.com/) - UI components
+# Builder Quantum Den - eKYC & Identity Wallet System
+
+A next-generation **electronic Know Your Customer (eKYC) system** and **Self-Sovereign Identity Wallet** built with React, Vite, Express, Zero-Knowledge Proofs (ZKPs), and a custom Blockchain simulator. This platform allows users to submit their KYC documents, admins to verify them securely, and third-party portals to request data proofs without exposing sensitive user information.
+
+![Architecture](https://img.shields.io/badge/Architecture-Vite%20%2B%20React%20%2B%20Express-blueviolet)
+![Security](https://img.shields.io/badge/Security-Zero--Knowledge%20Proofs-success)
+![Database](https://img.shields.io/badge/Database-MySQL%20%26%20Supabase-blue)
+
+## 🏗️ Tech Stack
+
+- **Frontend:** React 18, Vite (SPA Mode), TailwindCSS 3, Radix UI (Shadcn/UI components).
+- **Backend:** Node.js, Express (Integrated with Vite Dev Server via single-port).
+- **Database:** MySQL (Aiven) for Blockchain State Persistence, Supabase for decentralized identifiers (DIDs) and auth.
+- **Cryptography:** Zero-Knowledge Proofs (circom/snarkjs) for checking PAN validity and Age without revealing actual values, SHA-256 for Block Hashing.
+
+## 🚀 Quick Start & Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd builder-quantum-den
+   ```
+
+2. **Install dependencies:**
+   This project strictly uses `pnpm`.
+   ```bash
+   pnpm install
+   ```
+
+3. **Environment Setup:**
+   Ensure your `.env` file is present in the root directory. It should contain your MySQL (`DB_HOST`, `DB_USER`, etc.) and Supabase (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) credentials. 
+   *(Note: If MySQL fails to connect, the system automatically falls back to an in-memory storage mode, so the app will still run smoothly for demo purposes!)*
+
+4. **Start the Development Server:**
+   ```bash
+   pnpm dev
+   ```
+   The application will be available at: **http://localhost:8080**
+
+## 🎬 How to Demo the Project (Workflow)
+
+Follow this exact step-by-step workflow to showcase the full capabilities of the eKYC and ZKP Identity system:
+
+### Step 1: User KYC Submission
+1. Navigate to **http://localhost:8080/submit**.
+2. Fill out the application form with mock data (Name, valid PAN format like `ABCDE1234F`, DOB, Email).
+3. Upload mock documents (JPEG, PNG, or PDF).
+4. Click **Submit**. 
+5. *What happens:* A unique KYC ID is generated, document hashes are created via SHA-256, and a new block is minted on the blockchain network containing the pending KYC transaction.
+
+### Step 2: View the Blockchain
+1. Navigate to **http://localhost:8080/blockchain-explorer**.
+2. Show the newly minted blocks. Point out that the data is hashed and the transaction is immutable.
+
+### Step 3: Admin Verification (Banker/Sector Role)
+1. Navigate to **http://localhost:8080/admin/login**.
+2. Login using the default Banker Admin credentials:
+   - **Email:** `bank@admin.com`
+   - **Password:** `admin123`
+   - **Sector:** Select `Banking`
+3. Navigate to the Admin Dashboard. Here you will see the pending KYC request submitted in Step 1.
+4. Click to **Approve** the KYC. 
+5. *What happens:* A new block is added to the blockchain updating the status to `VERIFIED`.
+
+### Step 4: Identity Wallet & Zero-Knowledge Proofs
+1. Go to the Portal Selector at **http://localhost:8080/portal**.
+2. Select **User Login** and authenticate (or navigate to `/dashboard/user` / `/my-identity`).
+3. Show the **Self-Sovereign Identity Dashboard**. Here the user can view their Decentralized Identifier (DID) and approved KYC data.
+4. **Demo the ZKP Feature:** Show how the system can prove the user is over 18 or possesses a valid PAN *without* exposing the actual DOB or PAN string to the requesting party.
+
+### Step 5: Third-Party Sector Portals
+1. Go back to the Portal Selector at **http://localhost:8080/portal**.
+2. You can access different sector dashboards (Medical, Government, Principal, IT) to demonstrate how different entities interact with the verified data using Zero-Knowledge Proofs, ensuring absolute privacy.
+
+## 📂 Key Project Directories
+
+- `client/pages/`: Contains all the React routes and dashboard views.
+- `server/routes/`: Contains Express API logic (`didRoutes.ts`, `zkRoutes.ts`, etc.).
+- `server/blockchain/`: Contains the logic for the simulated SHA-256 blockchain and MySQL integration.
+- `circuits/`: Contains the `.circom` files used for generating Zero-Knowledge Proof circuits (`ageCheck.circom`, `panCheck.circom`).
+- `client/App.tsx`: The main routing file defining all frontend endpoints.
+
+## 🛠️ Available Scripts
+
+- `pnpm dev`: Start the combined Vite + Express dev server.
+- `pnpm build`: Create a production bundle for both client and server.
+- `pnpm start`: Start the production server from the built files.
+- `pnpm typecheck`: Run TypeScript validation.
+
+## 🛡️ Architecture Notes
+
+- **Single-Port Design:** The Express server is integrated directly into the Vite Dev Server. All API calls are prefixed with `/api/` and handled by Express, while Vite handles the frontend SPA routing.
+- **Dynamic Fallbacks:** The backend gracefully falls back to `Map()` in-memory objects if the primary Aiven MySQL database is unavailable, making local demos frictionless.
 
 ---
-
-## 🎯 Roadmap
-
-### Phase 1 (Current)
-
-- ✅ Basic KYC submission and verification
-- ✅ Hyperledger Fabric integration
-- ✅ IPFS document storage
-- ✅ React frontend
-
-### Phase 2 (Next)
-
-- 🔄 Advanced authentication (OAuth, SSO)
-- 🔄 Role-based access control
-- 🔄 Advanced analytics dashboard
-- 🔄 Mobile application
-
-### Phase 3 (Future)
-
-- 📋 AI-powered document verification
-- 📋 Cross-border KYC sharing
-- 📋 Regulatory reporting tools
-- 📋 Advanced privacy features
-
----
-
-**Built with ❤️ for secure digital identity verification**
+*Built with ❤️ by Quantum Den*

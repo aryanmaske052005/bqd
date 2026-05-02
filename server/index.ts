@@ -61,14 +61,9 @@ let useMySQL = false;
 
 // Initialize MySQL database for permanent storage
 const initializeDatabase = async (): Promise<void> => {
-  try {
-    await mysqlService.initialize();
-    useMySQL = true;
-    console.log("✅ MySQL database initialized - PERMANENT STORAGE ACTIVE");
-  } catch (error) {
-    console.error("⚠️ MySQL failed, using in-memory storage:", error.message);
-    useMySQL = false;
-  }
+  // Bypassing MySQL to avoid ETIMEDOUT and slow startup during demos
+  console.log("⚠️ Using in-memory storage for Blockchain (MySQL disabled)");
+  useMySQL = false;
 };
 
 // Initialize blockchain and services
@@ -363,6 +358,31 @@ export const createServer = () => {
       // Validate data
       const validatedData = KYCSubmissionSchema.parse(formData);
 
+      // Check if user already has an active, unexpired KYC submission
+      let existingRecord = null;
+      if (useMySQL) {
+        existingRecord = await mysqlService.getKYCRecordByPAN(validatedData.pan);
+        if (!existingRecord) existingRecord = await mysqlService.getKYCRecordByEmail(validatedData.email);
+      } else {
+        for (const [key, value] of kycRecords.entries()) {
+          if (value.pan === validatedData.pan || value.email === validatedData.email) {
+            existingRecord = value;
+            break;
+          }
+        }
+      }
+
+      if (existingRecord) {
+        const isExpired = existingRecord.expiryDate ? new Date(existingRecord.expiryDate) < new Date() : false;
+        if (existingRecord.status !== "REJECTED" && !isExpired) {
+          return res.status(400).json({
+            success: false,
+            message: "You already have an active KYC submission. You cannot submit another one until the previous one expires. If you need to resubmit documents, use the update feature.",
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
+
       const files = (req.files as Express.Multer.File[]) || [];
 
       if (files.length === 0) {
@@ -564,24 +584,17 @@ export const createServer = () => {
         updatedAt: new Date().toISOString(),
       };
 
-      // Create NEW BLOCKCHAIN BLOCK with unique transaction hash
-      console.log("📝 Creating new block for KYC update...");
-      const newBlock = await blockchain.addBlock(kycRecord, "KYC_UPDATE_RESUBMISSION");
-      console.log(`✅ NEW BLOCK CREATED: Index ${newBlock.index}`);
-      console.log(`🔗 NEW TX HASH: ${newBlock.transactionHash}`);
-      console.log(`🔗 PREVIOUS TX HASH: ${previousRecord.blockchainTxHash || 'N/A'}`);
-
-      // Update record with blockchain info
-      kycRecord.blockchainTxHash = newBlock.transactionHash;
+      console.log("📝 KYC update pending government verification before blockchain insertion...");
+      // Do not create a blockchain block yet for updates. It will be created upon verification.
+      kycRecord.blockchainTxHash = "PENDING_GOV_VERIFICATION";
 
       // Save to database
       if (useMySQL) {
         await mysqlService.saveKYCRecord(kycRecord);
-        await mysqlService.saveBlock(newBlock);
-        console.log(`💾 New KYC record and block saved to MySQL`);
+        console.log(`💾 New KYC record saved to MySQL (Block generation pending)`);
       } else {
         kycRecords.set(newKycId, kycRecord);
-        console.log(`💾 New KYC record saved to memory`);
+        console.log(`💾 New KYC record saved to memory (Block generation pending)`);
       }
 
       res.json({
@@ -590,7 +603,7 @@ export const createServer = () => {
         message: `KYC updated successfully! New KYC ID: ${newKycId}. Previous record preserved on blockchain.`,
         previousKycId: previousKycId,
         newKycId: newKycId,
-        newTransactionHash: newBlock.transactionHash,
+        newTransactionHash: "PENDING_GOV_VERIFICATION",
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
@@ -862,8 +875,9 @@ export const createServer = () => {
 
       console.log(`🔄 BLOCKCHAIN UPDATE: Processing ${status} for KYC ID: ${id}`);
 
-      // Create update data for new block with unique identifiers
+      // Create update data for new block with full record data
       const updateData = {
+        ...record,
         kycId: id,
         status,
         remarks: remarks || `KYC ${status.toLowerCase()} by admin`,
@@ -909,6 +923,7 @@ export const createServer = () => {
         if (status === "VERIFIED") {
           record.verifiedAt = verifiedAt;
           record.verificationLevel = "L2";
+          record.blockchainTxHash = newBlock.transactionHash; // Set the new hash here for updates
         }
         kycRecords.set(id, record);
         console.log(`💾 Record updated in memory`);
