@@ -3,7 +3,8 @@ import { useAuth } from '../hooks/useAuth';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, Home, FileText, Activity, Shield, Menu } from 'lucide-react';
+import { LogOut, Home, FileText, Activity, Shield, Menu, Bell } from 'lucide-react';
+import { NotificationCenter } from './NotificationCenter';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -77,15 +78,26 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
           <Shield className="h-6 w-6 text-blue-500" />
           <span className="font-bold">Authen Ledger</span>
         </div>
-        <Button variant="ghost" size="icon" className="text-slate-300 hover:text-white" onClick={handleSignOut}>
-          <LogOut className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center space-x-2">
+          <NotificationCenter />
+          <Button variant="ghost" size="icon" className="text-slate-300 hover:text-white" onClick={handleSignOut}>
+            <LogOut className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="bg-white border-b px-6 py-4 sticky top-0 z-40 hidden md:block">
+        <header className="bg-white border-b px-6 py-3 sticky top-0 z-40 hidden md:flex items-center justify-between">
           <h1 className="text-2xl font-bold text-slate-800">{title}</h1>
+          <div className="flex items-center gap-4">
+            <NotificationCenter />
+            <div className="h-8 w-px bg-slate-200" />
+            <div className="flex flex-col text-right">
+              <span className="text-sm font-semibold text-slate-900">{profile?.full_name}</span>
+              <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">{profile?.role?.replace(/_/g, ' ')}</span>
+            </div>
+          </div>
         </header>
         <div className="md:hidden bg-white border-b px-6 py-4">
           <h1 className="text-xl font-bold text-slate-800">{title}</h1>

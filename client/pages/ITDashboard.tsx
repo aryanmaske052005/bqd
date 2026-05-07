@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import { DashboardLayout } from '../components/DashboardLayout';
+import { IssueVCDialog } from '../components/IssueVCDialog';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Loader2, Activity, Link2, ShieldAlert, CheckCircle, Search, Database } from 'lucide-react';
+import { Loader2, Activity, Link2, ShieldAlert, CheckCircle, Search, Database, CalendarDays, Fingerprint } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,8 @@ export default function ITDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [vcDialogDoc, setVcDialogDoc] = useState<any | null>(null);
+  const [vcIssuing, setVcIssuing] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -101,6 +104,45 @@ export default function ITDashboard() {
     }
   };
 
+  const handleIssueVC = async (docId: string, targetUserId: string, expiryDate: string) => {
+    if (!user) return;
+    setVcIssuing(true);
+    try {
+      const expiry = new Date(expiryDate);
+      const expiryDays = Math.max(1, Math.ceil((expiry.getTime() - Date.now()) / 86400000));
+
+      const response = await fetch('/api/did/vc/issue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': user.id, 'x-user-role': user.role || '' },
+        body: JSON.stringify({ 
+          holderUserId: targetUserId, 
+          credentialType: 'SecurityClearanceCredential', 
+          claims: { docId, status: 'Verified', clearance: 'IT Security Approved', expiryDate }, 
+          expiryDays 
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      await supabase.from('kyc_documents').update({ expiry_date: expiryDate }).eq('id', docId);
+      await supabase.from('audit_logs').insert({ 
+        action: 'IT_VC_ISSUED', 
+        performed_by: user.id, 
+        target_user: targetUserId, 
+        document_id: docId, 
+        metadata: { expiry_date: expiryDate, vc_id: data.vc?.id } 
+      });
+
+      toast.success(`Security VC issued! Expires ${new Date(expiryDate).toLocaleDateString()}`);
+      setVcDialogDoc(null);
+      fetchData();
+    } catch (err: any) {
+      toast.error('Failed to issue VC', { description: err.message });
+    } finally {
+      setVcIssuing(false);
+    }
+  };
+
   const handleVerifyHash = async (hash: string) => {
     if (!hash) return;
     try {
@@ -124,6 +166,19 @@ export default function ITDashboard() {
 
   return (
     <DashboardLayout title="IT Security Portal">
+      {vcDialogDoc && (
+        <IssueVCDialog
+          doc={vcDialogDoc}
+          credentialType="Security Clearance"
+          authorityLabel="IT Security Dept"
+          accentColor="indigo"
+          defaultExpiryYears={2}
+          onClose={() => setVcDialogDoc(null)}
+          onIssue={handleIssueVC}
+          isLoading={vcIssuing}
+        />
+      )}
+
       {/* System Health */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <Card className="shadow-sm border-cyan-100">
@@ -161,7 +216,7 @@ export default function ITDashboard() {
           <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between pb-4">
             <div>
               <CardTitle className="text-xl">Master Document Ledger</CardTitle>
-              <CardDescription>Read-only view of all system documents</CardDescription>
+              <CardDescription>Security oversight of all system documents</CardDescription>
             </div>
             <div className="relative w-full md:w-64 mt-4 md:mt-0">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
@@ -182,9 +237,10 @@ export default function ITDashboard() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>User / Type</TableHead>
+                      <TableHead>Expiry Date</TableHead>
                       <TableHead>Blockchain TX</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Security Actions</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -193,6 +249,16 @@ export default function ITDashboard() {
                         <TableCell>
                           <div className="font-medium text-slate-900">{doc.profiles?.full_name}</div>
                           <div className="text-xs text-slate-500 capitalize">{doc.doc_type.replace('_', ' ')}</div>
+                        </TableCell>
+                        <TableCell>
+                          {doc.expiry_date ? (
+                            <span className="inline-flex items-center gap-1 text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5">
+                              <CalendarDays className="h-3 w-3" />
+                              {new Date(doc.expiry_date).toLocaleDateString()}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-400">—</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {doc.blockchain_tx_hash ? (
@@ -213,7 +279,16 @@ export default function ITDashboard() {
                             {doc.status}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right space-x-2">
+                          {doc.status === 'approved' && (
+                            <Button 
+                              size="sm" 
+                              className="bg-indigo-600 hover:bg-indigo-700 text-white" 
+                              onClick={() => setVcDialogDoc(doc)}
+                            >
+                              <Fingerprint className="h-3 w-3 mr-1" /> VC
+                            </Button>
+                          )}
                           <Button 
                             variant="outline" 
                             size="sm"
